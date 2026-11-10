@@ -229,6 +229,68 @@
         </footer>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        document.querySelectorAll('.carousel-section').forEach(function (section) {
+        const track = section.querySelector('.carousel-track');
+        if (!track) return;
+
+        const cards = Array.from(track.querySelectorAll('.carousel-card'));
+        const prevBtn = section.querySelector('.carousel-btn-prev');
+        const nextBtn = section.querySelector('.carousel-btn-next');
+        const dotsContainer = section.querySelector('.carousel-dots');
+
+        const dots = cards.map((_, i) => {
+            const dot = document.createElement('button');
+            dot.type = 'button';
+            dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+            dot.setAttribute('aria-label', 'Перейти к слайду ' + (i + 1));
+            dot.addEventListener('click', () => scrollToCard(i));
+            dotsContainer.appendChild(dot);
+            return dot;
+        });
+
+        function scrollToCard(index) {
+            const card = cards[Math.max(0, Math.min(cards.length - 1, index))];
+            track.scrollTo({ left: card.offsetLeft - track.offsetLeft, behavior: 'smooth' });
+        }
+
+        function getCurrentIndex() {
+            const maxScroll = track.scrollWidth - track.clientWidth;
+            if (maxScroll > 0 && track.scrollLeft >= maxScroll - 2) return cards.length - 1;
+            let best = 0, bestDist = Infinity;
+            cards.forEach((card, i) => {
+                const dist = Math.abs(card.offsetLeft - track.offsetLeft - track.scrollLeft);
+                if (dist < bestDist) { bestDist = dist; best = i; }
+            });
+            return best;
+        }
+
+        function update() {
+            const current = getCurrentIndex();
+            dots.forEach((dot, i) => dot.classList.toggle('active', i === current));
+            const maxScroll = track.scrollWidth - track.clientWidth;
+            if (prevBtn) prevBtn.disabled = track.scrollLeft <= 2;
+            if (nextBtn) nextBtn.disabled = track.scrollLeft >= maxScroll - 2;
+        }
+
+        if (prevBtn) prevBtn.addEventListener('click', () => scrollToCard(getCurrentIndex() - 1));
+        if (nextBtn) nextBtn.addEventListener('click', () => scrollToCard(getCurrentIndex() + 1));
+
+        track.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') { e.preventDefault(); scrollToCard(getCurrentIndex() + 1); }
+            if (e.key === 'ArrowLeft') { e.preventDefault(); scrollToCard(getCurrentIndex() - 1); }
+        });
+
+        let ticking = false;
+        track.addEventListener('scroll', () => {
+            if (ticking) return;
+            ticking = true;
+            requestAnimationFrame(() => { update(); ticking = false; });
+        }, { passive: true });
+
+        window.addEventListener('resize', update);
+        update();
+    });
+    </script>
 </body>
 </html>
